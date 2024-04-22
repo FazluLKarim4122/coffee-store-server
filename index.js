@@ -8,7 +8,7 @@ const cors = require('cors')
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000 ;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //middleware
 app.use(cors())
@@ -40,6 +40,69 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    //Then to insert in the database create 
+    const coffeeCollection = client.db("coffeeDB").collection("coffee")
+
+    //recieve data from client to server site
+    app.post('/coffee', async(req, res)=>{
+      const newCoffee = req.body
+      console.log(newCoffee); //check data
+      //sent data to database
+      const result = await coffeeCollection.insertOne(newCoffee)
+      res.send(result)
+    })
+
+    // Read operation to show UI
+    //to get (find multiple document) create api where find all 
+    app.get('/coffee',async(req, res)=>{
+      //cursor-set a pointer that collection
+      const cursor = coffeeCollection.find();
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+
+    //Delete Operation
+  
+    app.delete('/coffee/:id', async(req, res)=>{
+      const id = req.params.id;
+      //query - which product(coffee) one you get by matching this property 
+      const query = {_id: new ObjectId(id)}
+      const result = await coffeeCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    //update operation
+    // to update we have to go in a specific route, and find the id from database (see- find a document)
+    //2nd read operation with specific user /id
+    app.get('/coffee/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result= await coffeeCollection.findOne(query)
+      res.send(result)
+    })
+
+    app.put('/coffee/:id', async(req, res)=>{
+      const id = req.params.id
+      const filter = {_id: new ObjectId(id)}
+      const options ={ upsert: true} // থাকলে create করবা না থাকলে নতুন একটা বানাবা
+      const getUpdatedCoffee = req.body // যেটা updated পাইছি । body থেকে data recieve করলাম তারপর সেই data অনুযায়ী update করলাম 
+      const updatedCoffee = {
+        $set: {
+          name: getUpdatedCoffee.name,
+           chefName: getUpdatedCoffee.chefName,
+           quantity: getUpdatedCoffee.quantity,
+           supplier: getUpdatedCoffee.supplier,
+           taste: getUpdatedCoffee.taste,
+           category: getUpdatedCoffee.category,
+           details: getUpdatedCoffee.details,
+           photo: getUpdatedCoffee.photo
+        }
+      }
+      const result = await coffeeCollection.updateOne(filter, updatedCoffee, options)
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
