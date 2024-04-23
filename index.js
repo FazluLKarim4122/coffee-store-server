@@ -44,6 +44,8 @@ async function run() {
     //Then to insert in the database create 
     const coffeeCollection = client.db("coffeeDB").collection("coffee")
 
+    const userCollection = client.db("coffeeDB").collection("user")
+
     //recieve data from client to server site
     app.post('/coffee', async(req, res)=>{
       const newCoffee = req.body
@@ -100,6 +102,44 @@ async function run() {
         }
       }
       const result = await coffeeCollection.updateOne(filter, updatedCoffee, options)
+      res.send(result)
+    })
+
+    //User Related API CRUD operation
+    app.post('/user',async (req, res)=>{
+      const user = req.body
+      console.log(user);
+      const result = await userCollection.insertOne(user)
+      res.send(result)
+    })
+
+    //user related api get - get operation
+    app.get('/user', async(req, res)=>{
+      const cursor = userCollection.find()
+      const users = await cursor.toArray()
+      res.send(users)
+    })
+
+    //user related delete operation
+    app.delete('/user/:id', async(req, res)=>{
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await userCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    // Update operation
+    // যদি user profile এ গিয়ে যদি change করে তাহলে _id পেতাম এবং _id দিয়ে put করতে পারতাম। কিন্তু যখন log in করবো তখন _id নাই ঐ মূহুর্তে আমরা email দিয়ে log in করতে পারি আবার শুধু '/user' দিয়েও করতে পারি।
+    app.patch('/user',async(req, res)=>{
+      //যেহেতু body তে পাঠাচ্ছিলাম তাই এখান থেকে আমরা body parser middleware আছে তাই নিয়ে নিলাম। 
+      const user = req.body
+      const filter = {email: user.email}
+      const updatedDoc ={
+        $set: {
+          lastSignInAt: user.lastSignInAt
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc)
       res.send(result)
     })
 
